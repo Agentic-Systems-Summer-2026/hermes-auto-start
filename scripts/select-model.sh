@@ -98,7 +98,10 @@ for m in data:
                  f"{price:<16} {mid} ({ctxs})"))
 rows.sort(key=lambda r: (r[0], r[1], r[2], r[3]))
 # OpenRouter's own Free Models Router: zero-cost, picks a free model per
-# request and filters for tool support itself.
+# request and filters for tool support itself. The ?supported_parameters=tools
+# catalog filter excludes routers, so add it explicitly at the top. Other
+# openrouter/* routers stay hidden — some fan out to paid models and would
+# drain a student key fast.
 rows.insert(0, (0, 0.0, "openrouter", "openrouter/free",
                 f"{'FREE':<16} openrouter/free (router — picks a free, tool-capable model per request; rate-limited, fine for smoke tests)"))
 for r in rows: print(f"{r[3]}\t{r[4]}")

@@ -57,7 +57,8 @@ if [[ ! -f "${HOME}/.hermes/config.yaml" ]]; then
   bash "${REPO_DIR}/scripts/configure.sh" || true
 else
   cur_provider="$(grep -E '^  provider:|^  base_url:' "${HOME}/.hermes/config.yaml" 2>/dev/null | head -1 || true)"
-  # If current config uses openrouter but litellm validated (or vice versa), re-render.
+  # If current config uses OpenRouter but OU AI Sandbox validated (or vice versa), re-render.
+  # "litellm" = OU AI Sandbox endpoint (config uses base_url); "openrouter" = native provider.
   if [[ -n "${PREF_PROVIDER}" ]]; then
     cur_is_litellm=""; [[ "${cur_provider}" == *"base_url"* ]] && cur_is_litellm="yes"
     if [[ "${PREF_PROVIDER}" == "litellm" && -z "${cur_is_litellm}" ]] \

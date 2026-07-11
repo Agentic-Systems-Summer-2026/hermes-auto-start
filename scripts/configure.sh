@@ -10,7 +10,7 @@
 set -euo pipefail
 
 # ---- Settings (override via env if your model/endpoint differ) ----
-# Default OpenRouter model slug (cheap open model for routine agent loops).
+# Default OpenRouter model slug (used only when LITELLM_API_KEY is absent).
 # Verify the current slug at https://openrouter.ai/models before the term.
 OPENROUTER_MODEL="${OPENROUTER_MODEL:-qwen/qwen3-coder}"
 # Optional comma-separated fallback (secondary) model slugs (same provider).

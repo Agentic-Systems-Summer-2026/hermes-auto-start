@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-# Lifecycle-hook fallback (devcontainer postStartCommand): run a background
-# preflight check so the Hermes: Chat terminal can start faster.
+# Lifecycle-hook (devcontainer postStartCommand): run a background preflight
+# check so the Hermes: Chat terminal can start faster on container restart.
+# NOTE: This script is named gateway-daemon.sh for historical compatibility
+# (it previously started the OpenClaw gateway). It no longer manages a
+# gateway — it is now a preflight startup daemon for Hermes Agent.
 # Idempotent: exits immediately if preflight already passed.
 # Never fails the container start (always exits 0).
 export PATH="${HOME}/.local/bin:${HOME}/.hermes/bin:${HOME}/.cargo/bin:${HOME}/.local/bin:/usr/local/bin:/usr/bin:/bin:${PATH:-}"
