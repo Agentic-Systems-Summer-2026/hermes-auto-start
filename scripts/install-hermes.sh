@@ -9,6 +9,18 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091
 source "${HERE}/_env.sh" 2>/dev/null || true
 
+# Codespaces is headless, so the browser engine is usually unnecessary there.
+# Preserve the full install everywhere else unless the caller explicitly
+# requests browser tooling.
+INSTALL_BROWSER=true
+if [[ -n "${HERMES_INSTALL_BROWSER:-}" ]]; then
+  INSTALL_BROWSER=true
+elif [[ -n "${HERMES_SKIP_BROWSER:-}" ]]; then
+  INSTALL_BROWSER=false
+elif [[ -n "${CODESPACES:-}" ]]; then
+  INSTALL_BROWSER=false
+fi
+
 # Healthy = on PATH and the CLI responds.
 integrity_ok() {
   command -v hermes >/dev/null 2>&1 || return 1
@@ -24,9 +36,14 @@ fi
 for attempt in 1 2 3; do
   echo "==> Hermes Agent install attempt ${attempt}/3…"
   # Run the official installer non-interactively.
+  installer_args=()
+  if [[ "${INSTALL_BROWSER}" != "true" ]]; then
+    installer_args+=(--skip-browser)
+    echo "   Codespaces detected — skipping Playwright/Chromium install."
+  fi
   HERMES_NO_ONBOARD=1 HERMES_NO_PROMPT=1 \
     bash -c 'curl -fsSL --proto "=https" --tlsv1.2 \
-      https://hermes-agent.nousresearch.com/install.sh | bash' || true
+      https://hermes-agent.nousresearch.com/install.sh | bash -s -- "$@"' _ "${installer_args[@]}" || true
 
   # Reload PATH so the newly linked binary is visible.
   # shellcheck disable=SC1091
