@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
-# Pre-flight: find a working endpoint key BEFORE starting the gateway.
-# Order: OU LiteLLM Sandbox FIRST (if you have a key), then OpenRouter.
-# Writes (read by start-gateway.sh and the TUI launcher):
-#   ~/.openclaw/.preflight     = ok|fail
-#   ~/.openclaw/.provider      = litellm|openrouter   (preferred provider)
-#   ~/.openclaw/.providers_ok  = space-separated providers whose keys validated
+# Pre-flight: find a working endpoint key BEFORE starting Hermes.
+# Order: OU AI Sandbox FIRST (if you have a key), then OpenRouter.
+# Writes (read by start-hermes.sh):
+#   ~/.hermes/.preflight     = ok|fail
+#   ~/.hermes/.provider      = litellm|openrouter   (preferred provider)
+#   ~/.hermes/.providers_ok  = space-separated providers whose keys validated
 set -uo pipefail
 
 LITELLM_BASE_URL="${LITELLM_BASE_URL:-https://litellm.lib.ou.edu}"
-ENV_FILE="${HOME}/.openclaw/.env"
-STATUS="${HOME}/.openclaw/.preflight"
-PROVIDER_FILE="${HOME}/.openclaw/.provider"
-OK_FILE="${HOME}/.openclaw/.providers_ok"
+ENV_FILE="${HOME}/.hermes/.env"
+STATUS="${HOME}/.hermes/.preflight"
+PROVIDER_FILE="${HOME}/.hermes/.provider"
+OK_FILE="${HOME}/.hermes/.providers_ok"
 base="${LITELLM_BASE_URL%/}"
-mkdir -p "${HOME}/.openclaw"
+mkdir -p "${HOME}/.hermes"
 
 read_env() { grep -E "^$1=" "${ENV_FILE}" 2>/dev/null | tail -n1 | cut -d= -f2- || true; }
 
@@ -26,40 +26,42 @@ fail() { echo "fail" > "${STATUS}"; echo; echo "❌ $1"; echo; exit 1; }
 
 VALID=""
 
-# ---- 1) OU LiteLLM Sandbox — first choice ---------------------------------
+# ---- 1) OU AI Sandbox — first choice ----------------------------------------
 if [[ -n "${LL_KEY}" ]]; then
-  echo "🔑 Checking OU LiteLLM Sandbox key against ${base} ..."
+  echo "🔑 Checking OU AI Sandbox key against ${base} ..."
   ll_code=000
   for url in "${base}/v1/models" "${base}/models"; do
-    ll_code="$(curl -s -m 20 -o /tmp/oc_ll_models.json -w '%{http_code}' -H "Authorization: Bearer ${LL_KEY}" "${url}" 2>/dev/null || true)"
+    ll_code="$(curl -s -m 20 -o /tmp/h_ll_models.json -w '%{http_code}' \
+      -H "Authorization: Bearer ${LL_KEY}" "${url}" 2>/dev/null || true)"
     ll_code="${ll_code//[^0-9]/}"; ll_code="${ll_code:0:3}"; [[ -z "${ll_code}" ]] && ll_code=000
     [[ "${ll_code}" == "200" ]] && break
   done
   if [[ "${ll_code}" == "200" ]]; then
-    count="$(python3 -c 'import json;print(len(json.load(open("/tmp/oc_ll_models.json")).get("data",[])))' 2>/dev/null || echo "?")"
-    echo "✅ OU LiteLLM key valid — ${count} model(s) available."
+    count="$(python3 -c 'import json;print(len(json.load(open("/tmp/h_ll_models.json")).get("data",[])))' 2>/dev/null || echo "?")"
+    echo "✅ OU AI Sandbox key valid — ${count} model(s) available."
     VALID="litellm"
   else
     case "${ll_code}" in
-      401|403) echo "⚠️  OU LiteLLM key rejected (HTTP ${ll_code}) — will try OpenRouter next. Fix later: bash scripts/set-key.sh" ;;
+      401|403) echo "⚠️  OU AI Sandbox key rejected (HTTP ${ll_code}) — will try OpenRouter next. Fix later: bash scripts/set-key.sh" ;;
       000)     echo "⚠️  Could not reach ${base} — will try OpenRouter next." ;;
       *)       echo "⚠️  Unexpected response (HTTP ${ll_code}) from ${base} — will try OpenRouter next." ;;
     esac
   fi
 fi
 
-# ---- 2) OpenRouter — second choice -----------------------------------------
+# ---- 2) OpenRouter — second choice ------------------------------------------
 if [[ -n "${OR_KEY}" ]]; then
   echo "🔑 Checking OpenRouter key ..."
   # /api/v1/key returns the key's metadata (usage/limit) — a clean auth check.
-  or_code="$(curl -s -m 20 -o /tmp/oc_key.json -w '%{http_code}' -H "Authorization: Bearer ${OR_KEY}" https://openrouter.ai/api/v1/key 2>/dev/null || true)"
+  or_code="$(curl -s -m 20 -o /tmp/h_key.json -w '%{http_code}' \
+    -H "Authorization: Bearer ${OR_KEY}" https://openrouter.ai/api/v1/key 2>/dev/null || true)"
   or_code="${or_code//[^0-9]/}"; or_code="${or_code:0:3}"; [[ -z "${or_code}" ]] && or_code=000
   if [[ "${or_code}" == "200" ]]; then
     echo "✅ OpenRouter key valid."
     # Best-effort spend readout — it's your own money, so keep an eye on it.
     python3 - << 'PY' 2>/dev/null || true
 import json
-d = json.load(open("/tmp/oc_key.json")).get("data", {})
+d = json.load(open("/tmp/h_key.json")).get("data", {})
 usage, limit = d.get("usage"), d.get("limit")
 if usage is not None:
     lim = f" of your ${limit:.2f} key limit" if isinstance(limit, (int, float)) else ""
@@ -78,17 +80,17 @@ fi
 # ---- verdict ----------------------------------------------------------------
 if [[ -z "${VALID}" ]]; then
   if [[ -z "${LL_KEY}" && -z "${OR_KEY}" ]]; then
-    echo "nokey" > "${HOME}/.openclaw/.preflight_reason"
+    echo "nokey" > "${HOME}/.hermes/.preflight_reason"
     fail "No endpoint key set. Provide ONE of:
-   • LITELLM_API_KEY  — your OU LiteLLM Sandbox key (starts with sk-), or
+   • LITELLM_API_KEY  — your OU AI Sandbox key (starts with sk-), or
    • OPENROUTER_API_KEY — your own OpenRouter key (sk-or-, from openrouter.ai → Settings → Keys).
    Set it as a Codespaces secret and reopen, or run: bash scripts/set-key.sh"
   else
-    echo "invalid" > "${HOME}/.openclaw/.preflight_reason"
+    echo "invalid" > "${HOME}/.hermes/.preflight_reason"
     fail "No working endpoint key. See the warnings above, then fix with: bash scripts/set-key.sh"
   fi
 fi
-rm -f "${HOME}/.openclaw/.preflight_reason"
+rm -f "${HOME}/.hermes/.preflight_reason"
 
 PREFERRED="${VALID%% *}"   # litellm wins when both validated (listed first)
 echo "${PREFERRED}" > "${PROVIDER_FILE}"
@@ -96,7 +98,7 @@ echo "${VALID}" > "${OK_FILE}"
 echo "ok" > "${STATUS}"
 if [[ "${PREFERRED}" == "litellm" ]]; then
   extra=""; [[ "${VALID}" == *openrouter* ]] && extra=" — OpenRouter key also valid (switch any time: bash scripts/select-model.sh)"
-  echo "▶️  Endpoint: OU LiteLLM Sandbox (first choice)${extra}"
+  echo "▶️  Endpoint: OU AI Sandbox (first choice)${extra}"
 else
-  echo "▶️  Endpoint: OpenRouter (no working OU LiteLLM key found)"
+  echo "▶️  Endpoint: OpenRouter (no working OU AI Sandbox key found)"
 fi

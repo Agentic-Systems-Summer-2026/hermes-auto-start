@@ -1,47 +1,56 @@
 #!/usr/bin/env bash
-# Switch the OpenClaw model. Browses tool-capable OpenRouter models (your own
-# key) and — when an OU LiteLLM Sandbox key is present — the OU Sandbox
-# catalog (the course's first-choice endpoint). Sets primary + optional
-# fallback; the gateway hot-reloads.
+# Switch the Hermes Agent model. Browses tool-capable OpenRouter models (your
+# own key) and — when an OU AI Sandbox key is present — the OU Sandbox
+# catalog (the course's first-choice endpoint). Updates ~/.hermes/config.yaml
+# and Hermes picks up the change on next startup.
 set -uo pipefail
-# Make 'openclaw' findable in non-interactive shells.
+# Make 'hermes' findable in non-interactive shells.
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_env.sh" 2>/dev/null || true
 
 LITELLM_BASE_URL="${LITELLM_BASE_URL:-https://litellm.lib.ou.edu}"
-ENV_FILE="${HOME}/.openclaw/.env"
+ENV_FILE="${HOME}/.hermes/.env"
 oubase="${LITELLM_BASE_URL%/}"
 
-read_env() { # read_env VAR -> value from process env or ~/.openclaw/.env
+read_env() { # read_env VAR -> value from process env or ~/.hermes/.env
   local var="$1" val="${!1:-}"
   [[ -z "${val}" && -f "${ENV_FILE}" ]] && val="$(grep -E "^${var}=" "${ENV_FILE}" | tail -n1 | cut -d= -f2- || true)"
   printf '%s' "${val}"
 }
 
-apply_models() { # apply_models <prefix> <primary> [fallbacks...]
-  local prefix="$1" primary="$2"; shift 2
-  echo "→ primary: ${prefix}${primary}"
-  if ! openclaw models set "${prefix}${primary}"; then
-    echo "❌ Could not set primary '${prefix}${primary}'."
-    echo "   Run 'openclaw models list' for valid refs, and check the gateway is running."
-    exit 1
+apply_models() { # apply_models <provider> <primary> [fallbacks...]
+  local provider="$1" primary="$2"; shift 2
+  echo "→ Setting model: ${primary} (provider: ${provider})"
+  if [[ "${provider}" == "litellm" ]]; then
+    # OU AI Sandbox: custom OpenAI-compatible endpoint
+    LL_KEY="$(read_env LITELLM_API_KEY)"
+    hermes config set model.base_url "${oubase}/v1" >/dev/null 2>&1 || \
+      { echo "❌ Could not set model config. Is Hermes installed? Run 'bash .devcontainer/setup.sh'"; exit 1; }
+    hermes config set model.api_key "${LL_KEY}" >/dev/null 2>&1 || true
+    hermes config set model.default "${primary}" >/dev/null 2>&1 || \
+      { echo "❌ Could not set model.default."; exit 1; }
+    # Clear provider field so base_url takes precedence
+    hermes config set model.provider "" >/dev/null 2>&1 || true
+  else
+    # OpenRouter: clear base_url/api_key so native openrouter provider is used
+    hermes config set model.provider openrouter >/dev/null 2>&1 || \
+      { echo "❌ Could not set model config. Is Hermes installed? Run 'bash .devcontainer/setup.sh'"; exit 1; }
+    hermes config set model.default "${primary}" >/dev/null 2>&1 || \
+      { echo "❌ Could not set model.default."; exit 1; }
+    hermes config set model.base_url "" >/dev/null 2>&1 || true
+    hermes config set model.api_key "" >/dev/null 2>&1 || true
   fi
-  openclaw models fallbacks clear >/dev/null 2>&1 || true
-  local f
-  for f in "$@"; do
-    [[ -n "${f}" ]] || continue
-    echo "→ fallback: ${prefix}${f}"
-    openclaw models fallbacks add "${prefix}${f}" || echo "⚠️  Couldn't add fallback '${prefix}${f}' — skipped."
-  done
-  echo; echo "Current model configuration:"
-  openclaw models status 2>/dev/null || echo "⚠️  'openclaw models status' unavailable (is the gateway running?)."
-  echo "(Hot-reloaded for new sessions. For the chat you're in now, switch with /model.)"
+  echo
+  echo "✅ Model set to: ${primary}"
+  echo "   Config: ~/.hermes/config.yaml"
+  echo "   Restart Hermes (Ctrl-C + bash scripts/start-hermes.sh) to use the new model."
+  echo "   Or switch mid-session with /model inside Hermes."
 }
 
 # ---- prerequisites --------------------------------------------------------
 need() { command -v "$1" >/dev/null 2>&1 || { echo "❌ Required tool '$1' not found — $2"; exit 1; }; }
 need curl    "rebuild the Codespace or install curl."
 need python3 "rebuild the Codespace or install python3."
-need openclaw "OpenClaw isn't on PATH yet — start the Gateway task first, or run: bash .devcontainer/setup.sh"
+need hermes  "Hermes isn't on PATH yet — run: bash .devcontainer/setup.sh"
 
 # ---- OpenRouter catalog (primary) -----------------------------------------
 OR_KEY="$(read_env OPENROUTER_API_KEY)"
@@ -89,10 +98,7 @@ for m in data:
                  f"{price:<16} {mid} ({ctxs})"))
 rows.sort(key=lambda r: (r[0], r[1], r[2], r[3]))
 # OpenRouter's own Free Models Router: zero-cost, picks a free model per
-# request and filters for tool support itself. The ?supported_parameters=tools
-# catalog filter excludes routers, so add it explicitly at the top. Other
-# openrouter/* routers stay hidden — some fan out to paid models and would
-# drain a student key fast.
+# request and filters for tool support itself.
 rows.insert(0, (0, 0.0, "openrouter", "openrouter/free",
                 f"{'FREE':<16} openrouter/free (router — picks a free, tool-capable model per request; rate-limited, fine for smoke tests)"))
 for r in rows: print(f"{r[3]}\t{r[4]}")
@@ -107,7 +113,7 @@ for row in "${ORROWS[@]}"; do
 done
 N=${#OR_IDS[@]}
 
-# ---- OU Sandbox option (key-gated; the course's first-choice endpoint) -----
+# ---- OU AI Sandbox option (key-gated; the course's first-choice endpoint) -----
 LL_KEY="$(read_env LITELLM_API_KEY)"
 [[ "${LL_KEY}" == "sk-REPLACE_ME" ]] && LL_KEY=""
 LL_OPTION=0
@@ -118,7 +124,7 @@ fi
 echo
 read -rp "Primary model number [default 1]: " choice </dev/tty; choice="${choice:-1}"
 
-# ---- OU Sandbox branch ----------------------------------------------------
+# ---- OU AI Sandbox branch -------------------------------------------------
 if [[ -n "${LL_KEY}" && "${choice}" == "${LL_OPTION}" ]]; then
   echo "Fetching OU models from ${oubase} ..."
   http=000
@@ -128,7 +134,7 @@ if [[ -n "${LL_KEY}" && "${choice}" == "${LL_OPTION}" ]]; then
   done
   case "${http}" in
     200) ;;
-    401|403) echo "❌ OU Sandbox key rejected (HTTP ${http})."; exit 1 ;;
+    401|403) echo "❌ OU AI Sandbox key rejected (HTTP ${http})."; exit 1 ;;
     000)     echo "❌ Could not reach ${oubase} (network/endpoint issue). Check the URL or try again."; exit 1 ;;
     *)       echo "❌ OU gateway returned HTTP ${http}. Details in /tmp/ou_models.json"; exit 1 ;;
   esac
@@ -141,13 +147,7 @@ for m in json.load(open("/tmp/ou_models.json")).get("data",[]): print(m["id"])' 
   read -rp "Primary model number [default 1]: " p </dev/tty; p="${p:-1}"
   if ! [[ "${p}" =~ ^[0-9]+$ ]] || (( p < 1 || p > ${#OU[@]} )); then echo "Invalid choice."; exit 1; fi
   PRIMARY="${OU[$((p-1))]}"
-  read -rp "Fallback number(s) from the list above, comma-separated (blank = none): " s </dev/tty
-  FB=()
-  if [[ -n "${s// /}" ]]; then
-    IFS=',' read -ra IDX <<< "${s}"
-    for n in "${IDX[@]}"; do n="${n// /}"; m="${OU[$((n-1))]:-}"; [[ -n "${m}" ]] && FB+=("${m}"); done
-  fi
-  apply_models "litellm/" "${PRIMARY}" ${FB[@]+"${FB[@]}"}
+  apply_models "litellm" "${PRIMARY}"
   exit 0
 fi
 
@@ -156,10 +156,4 @@ if ! [[ "${choice}" =~ ^[0-9]+$ ]] || (( choice < 1 || choice > N )); then
   echo "Invalid choice."; exit 1
 fi
 PRIMARY="${OR_IDS[$((choice-1))]}"
-read -rp "Fallback number(s), comma-separated (blank = none): " s </dev/tty
-FB=()
-if [[ -n "${s// /}" ]]; then
-  IFS=',' read -ra IDX <<< "${s}"
-  for n in "${IDX[@]}"; do n="${n// /}"; m="${OR_IDS[$((n-1))]:-}"; [[ -n "${m}" ]] && FB+=("${m}"); done
-fi
-apply_models "openrouter/" "${PRIMARY}" ${FB[@]+"${FB[@]}"}
+apply_models "openrouter" "${PRIMARY}"
