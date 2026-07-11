@@ -1,8 +1,8 @@
 """Shared LLM client for all Build Challenges. Stdlib only — no pip installs.
 
-Endpoint auto-detect (matches the Codespace's gateway behavior):
-  1. OU LiteLLM Sandbox — used when LITELLM_API_KEY is set (first choice)
-  2. OpenRouter        — used otherwise (your own OPENROUTER_API_KEY)
+Endpoint auto-detect (matches the Codespace's Hermes Agent configuration):
+  1. OU AI Sandbox — used when LITELLM_API_KEY is set (first choice)
+  2. OpenRouter    — used otherwise (your own OPENROUTER_API_KEY)
 
 Usage (from any bc*/ script):
     import sys, pathlib; sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
@@ -15,8 +15,8 @@ Features you will need across the course:
   - STATS: running call/token counts (Day 9 cost lab & BC4 sweeps read these)
   - cache=True: disk cache keyed on the exact request (BC4 requires caching;
     it is also the biggest lever in the Day 9 cost-cut exercise)
-  - model=...: route a call to a cheaper model (on LiteLLM: an id from the
-    Sandbox catalog; on OpenRouter: any slug from openrouter.ai/models)
+  - model=...: route a call to a cheaper model (on OU AI Sandbox: an id from
+    the Sandbox catalog; on OpenRouter: any slug from openrouter.ai/models)
 """
 import hashlib
 import json
@@ -28,7 +28,7 @@ import urllib.request
 
 _LL_KEY = os.environ.get("LITELLM_API_KEY", "")
 if _LL_KEY and _LL_KEY != "sk-REPLACE_ME":
-    PROVIDER = "OU LiteLLM Sandbox"
+    PROVIDER = "OU AI Sandbox"
     _KEY_VAR = "LITELLM_API_KEY"
     BASE = os.environ.get("LITELLM_BASE_URL", "https://litellm.lib.ou.edu")
     DEFAULT_MODEL = os.environ.get("COURSE_MODEL", "Qwen3 Coder 30B")

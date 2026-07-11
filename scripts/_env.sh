@@ -1,16 +1,13 @@
 #!/usr/bin/env bash
-# Sourced by the other scripts. Makes `openclaw` (and node) discoverable in
-# non-interactive VS Code *task* shells, which don't load ~/.bashrc / nvm.
-# On the devcontainer image, npm-global binaries live in the nvm-managed
-# node bin (e.g. /usr/local/share/nvm/versions/node/<ver>/bin) — not on the
-# default task PATH. We add every plausible location here.
-_NVM_DIR="${NVM_DIR:-/usr/local/share/nvm}"
+# Sourced by the other scripts. Makes `hermes` discoverable in non-interactive
+# VS Code *task* shells, which don't load ~/.bashrc.
+# The official Hermes installer places the binary at ~/.local/bin/hermes
+# (symlinked from the managed venv). We also search ~/.hermes/bin and other
+# common locations as a safety net.
 for _d in \
   "${HOME}/.local/bin" \
-  "${HOME}/.npm-global/bin" \
-  /usr/local/share/npm-global/bin \
-  "${HOME}/.openclaw/bin" \
-  "${_NVM_DIR}"/versions/node/*/bin
+  "${HOME}/.hermes/bin" \
+  "${HOME}/.cargo/bin"
 do
   if [ -d "${_d}" ]; then
     case ":${PATH}:" in
@@ -19,13 +16,13 @@ do
     esac
   fi
 done
-# Last resort: if openclaw still isn't resolvable, search for it on disk.
-if ! command -v openclaw >/dev/null 2>&1; then
-  _oc="$(find "${_NVM_DIR}" /usr/local/share/npm-global /usr/local/lib/node_modules "${HOME}/.npm-global" "${HOME}/.local" "${HOME}/.openclaw" -maxdepth 4 -name openclaw -type f 2>/dev/null | head -n1 || true)"
-  if [ -n "${_oc:-}" ]; then
-    case ":${PATH}:" in *":$(dirname "${_oc}"):"*) : ;; *) PATH="$(dirname "${_oc}"):${PATH}" ;; esac
+# Last resort: if hermes still isn't resolvable, search for it on disk.
+if ! command -v hermes >/dev/null 2>&1; then
+  _h="$(find "${HOME}/.hermes" "${HOME}/.local" "${HOME}/.cargo" -maxdepth 6 -name hermes -type f 2>/dev/null | head -n1 || true)"
+  if [ -n "${_h:-}" ]; then
+    case ":${PATH}:" in *":$(dirname "${_h}"):"*) : ;; *) PATH="$(dirname "${_h}"):${PATH}" ;; esac
   fi
-  unset _oc
+  unset _h
 fi
 export PATH
-unset _d _NVM_DIR
+unset _d

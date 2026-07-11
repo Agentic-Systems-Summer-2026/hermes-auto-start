@@ -2,7 +2,7 @@
 #
 # Runs your eval harness on every push: a SMALL live sweep (default 5 cases,
 # temperature 0, response caching on) against your course endpoint — the OU
-# LiteLLM Sandbox if a LITELLM_API_KEY secret is set, else OpenRouter via
+# AI Sandbox if a LITELLM_API_KEY secret is set, else OpenRouter via
 # OPENROUTER_API_KEY. If neither repository secret is set yet (pre-BC4), the
 # job passes with a notice instead of failing — set one when you reach BC4:
 #   repo Settings → Secrets and variables → Actions → New repository secret
