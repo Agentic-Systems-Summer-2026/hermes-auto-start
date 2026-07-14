@@ -134,7 +134,7 @@ for m in data:
                  f"{price:<16} {mid} ({ctxs})"))
 rows.sort(key=lambda r: (r[0], r[1], r[2], r[3]))
 rows.insert(0, (0, 0.0, "openrouter", "openrouter/free",
-                f"{'FREE':<16} openrouter/free (router — picks a free, tool-capable model per request; rate-limited)"))
+                f"{'FREE':<16} openrouter/free (router -- picks a free, tool-capable model per request; rate-limited)"))
 for r in rows: print(f"{r[3]}\t{r[4]}")
 PY
 )
