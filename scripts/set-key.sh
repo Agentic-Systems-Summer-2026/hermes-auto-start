@@ -7,8 +7,8 @@
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ENV_FILE="${HOME}/.hermes/.env"
-mkdir -p "${HOME}/.hermes"
+ENV_FILE="${HOME}/.opencode/.env"
+mkdir -p "${HOME}/.opencode"
 
 echo "Enter your API key — OU AI Sandbox (sk-...) or OpenRouter (sk-or-...)."
 echo "Input is hidden."
@@ -34,7 +34,7 @@ else
   esac
 fi
 
-# Update (or add) just this variable in ~/.hermes/.env.
+# Update (or add) just this variable in ~/.opencode/.env.
 umask 077
 touch "${ENV_FILE}"
 grep -vE "^${VAR}=" "${ENV_FILE}" > "${ENV_FILE}.tmp" || true
@@ -43,9 +43,9 @@ mv "${ENV_FILE}.tmp" "${ENV_FILE}"
 chmod 600 "${ENV_FILE}"
 
 # Let preflight re-decide which endpoint to use with the new key.
-rm -f "${HOME}/.hermes/.provider" "${HOME}/.hermes/.providers_ok"
+rm -f "${HOME}/.opencode/.provider" "${HOME}/.opencode/.providers_ok"
 
 echo "Saved ${LABEL} key."
 bash "${REPO_DIR}/scripts/configure.sh"
-echo "If Hermes is already running, restart it (Ctrl-C the Chat terminal,"
-echo "then: bash scripts/start-hermes.sh) to pick up the new key."
+echo "If OpenCode is already running, restart it (Ctrl-C the Chat terminal,"
+echo "then: bash scripts/start-opencode.sh) to pick up the new key."

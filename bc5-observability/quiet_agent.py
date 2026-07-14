@@ -10,7 +10,7 @@ no trace, no cost data, no way to say WHICH step went sideways. On purpose.
 YOUR JOB (see README.md): instrument this stack — structured trace logging
 (JSONL: timestamp, step, model, tokens, latency, decision), a human-in-the-
 loop checkpoint before anything is written to disk, and cost/usage pulled
-from the gateway (~/.hermes/hermes.log and/or common.llm.STATS). Then
+from the gateway (~/.opencode/opencode.log and/or common.llm.STATS). Then
 break something on purpose, diagnose it FROM YOUR OWN TRACE, and write the
 incident up: what happened, how the trace showed it, what you changed.
 """

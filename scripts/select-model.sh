@@ -1,63 +1,99 @@
 #!/usr/bin/env bash
-# Switch the Hermes Agent model. Browses tool-capable OpenRouter models (your
+# Switch the OpenCode model. Browses tool-capable OpenRouter models (your
 # own key) and — when an OU AI Sandbox key is present — the OU Sandbox
-# catalog (the course's first-choice endpoint). Updates ~/.hermes/config.yaml
-# and Hermes picks up the change on next startup.
+# catalog (the course's first-choice endpoint). Updates
+# ~/.config/opencode/opencode.json and OpenCode picks up the change on
+# next startup.
 set -uo pipefail
-# Make 'hermes' findable in non-interactive shells.
+# Make 'opencode' findable in non-interactive shells.
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_env.sh" 2>/dev/null || true
 
 LITELLM_BASE_URL="${LITELLM_BASE_URL:-https://litellm.lib.ou.edu}"
-ENV_FILE="${HOME}/.hermes/.env"
+ENV_FILE="${HOME}/.opencode/.env"
 oubase="${LITELLM_BASE_URL%/}"
 
-read_env() { # read_env VAR -> value from process env or ~/.hermes/.env
+read_env() { # read_env VAR -> value from process env or ~/.opencode/.env
   local var="$1" val="${!1:-}"
   [[ -z "${val}" && -f "${ENV_FILE}" ]] && val="$(grep -E "^${var}=" "${ENV_FILE}" | tail -n1 | cut -d= -f2- || true)"
   printf '%s' "${val}"
 }
 
-apply_models() { # apply_models <provider> <primary> [fallbacks...]
-  local provider="$1" primary="$2"; shift 2
+apply_model() { # apply_model <provider> <primary>
+  local provider="$1" primary="$2"
   echo "→ Setting model: ${primary} (provider: ${provider})"
+
+  CONFIG_DIR="${HOME}/.config/opencode"
+  CONFIG_FILE="${CONFIG_DIR}/opencode.json"
+  mkdir -p "${CONFIG_DIR}"
+
   if [[ "${provider}" == "litellm" ]]; then
-    # OU AI Sandbox: custom OpenAI-compatible endpoint
+    # OU AI Sandbox: OpenAI-compatible custom endpoint
     LL_KEY="$(read_env LITELLM_API_KEY)"
-    hermes config set model.base_url "${oubase}/v1" >/dev/null 2>&1 || \
-      { echo "❌ Could not set model config. Is Hermes installed? Run 'bash .devcontainer/setup.sh'"; exit 1; }
-    hermes config set model.api_key "${LL_KEY}" >/dev/null 2>&1 || true
-    hermes config set model.default "${primary}" >/dev/null 2>&1 || \
-      { echo "❌ Could not set model.default."; exit 1; }
-    # Clear provider field so base_url takes precedence
-    hermes config set model.provider "" >/dev/null 2>&1 || true
+    BASE_URL="${oubase}/v1"
+    python3 - "${CONFIG_FILE}" "${primary}" "${BASE_URL}" "${LL_KEY}" << 'PY'
+import json, sys, os
+cfg_file, model, base_url, api_key = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+try:
+    cfg = json.load(open(cfg_file)) if os.path.exists(cfg_file) else {}
+except Exception:
+    cfg = {}
+cfg["$schema"] = "https://opencode.ai/config.json"
+cfg["provider"] = {
+    "ou-sandbox": {
+        "npm": "@ai-sdk/openai-compatible",
+        "name": "OU AI Sandbox",
+        "options": {"baseURL": base_url, "apiKey": api_key},
+        "models": {model: {"name": model}}
+    }
+}
+cfg["model"] = f"ou-sandbox/{model}"
+os.makedirs(os.path.dirname(cfg_file), exist_ok=True)
+with open(cfg_file, 'w') as f:
+    json.dump(cfg, f, indent=2)
+    f.write('\n')
+print(f"✅ Model set to: {model}")
+print(f"   Config: {cfg_file}")
+PY
   else
-    # OpenRouter: clear base_url/api_key so native openrouter provider is used
-    hermes config set model.provider openrouter >/dev/null 2>&1 || \
-      { echo "❌ Could not set model config. Is Hermes installed? Run 'bash .devcontainer/setup.sh'"; exit 1; }
-    hermes config set model.default "${primary}" >/dev/null 2>&1 || \
-      { echo "❌ Could not set model.default."; exit 1; }
-    hermes config set model.base_url "" >/dev/null 2>&1 || true
-    hermes config set model.api_key "" >/dev/null 2>&1 || true
+    # OpenRouter: built-in provider — key from OPENROUTER_API_KEY env var
+    OR_KEY="$(read_env OPENROUTER_API_KEY)"
+    python3 - "${CONFIG_FILE}" "${primary}" "${OR_KEY}" << 'PY'
+import json, sys, os
+cfg_file, model, api_key = sys.argv[1], sys.argv[2], sys.argv[3]
+try:
+    cfg = json.load(open(cfg_file)) if os.path.exists(cfg_file) else {}
+except Exception:
+    cfg = {}
+cfg["$schema"] = "https://opencode.ai/config.json"
+cfg["provider"] = {
+    "openrouter": {
+        "options": {"apiKey": api_key}
+    }
+}
+cfg["model"] = f"openrouter/{model}"
+os.makedirs(os.path.dirname(cfg_file), exist_ok=True)
+with open(cfg_file, 'w') as f:
+    json.dump(cfg, f, indent=2)
+    f.write('\n')
+print(f"✅ Model set to: {model}")
+print(f"   Config: ~/.config/opencode/opencode.json")
+PY
   fi
-  echo
-  echo "✅ Model set to: ${primary}"
-  echo "   Config: ~/.hermes/config.yaml"
-  echo "   Restart Hermes (Ctrl-C + bash scripts/start-hermes.sh) to use the new model."
-  echo "   Or switch mid-session with /model inside Hermes."
+  chmod 600 "${CONFIG_FILE}" 2>/dev/null || true
+  echo "   Restart OpenCode (Ctrl-C + bash scripts/start-opencode.sh) to use the new model."
 }
 
 # ---- prerequisites --------------------------------------------------------
 need() { command -v "$1" >/dev/null 2>&1 || { echo "❌ Required tool '$1' not found — $2"; exit 1; }; }
 need curl    "rebuild the Codespace or install curl."
 need python3 "rebuild the Codespace or install python3."
-need hermes  "Hermes isn't on PATH yet — run: bash .devcontainer/setup.sh"
 
 # ---- OpenRouter catalog (primary) -----------------------------------------
 OR_KEY="$(read_env OPENROUTER_API_KEY)"
 [[ -z "${OR_KEY}" || "${OR_KEY}" == "sk-or-REPLACE_ME" ]] && \
   { echo "No OpenRouter key. Create one at https://openrouter.ai (Settings → Keys), then run: bash scripts/set-key.sh"; exit 1; }
 
-# Validate the key first — listing is public, but selecting a model is moot if the key is bad.
+# Validate the key first.
 kc="$(curl -s -m 15 -o /dev/null -w '%{http_code}' -H "Authorization: Bearer ${OR_KEY}" https://openrouter.ai/api/v1/key || echo 000)"
 if [[ "${kc}" != "200" ]]; then
   echo "⚠️  OpenRouter key check returned HTTP ${kc} — it may be invalid, disabled, or out of credit."
@@ -97,17 +133,12 @@ for m in data:
     rows.append((0 if free else 1, pin if pin is not None else 9e9, vendor, mid,
                  f"{price:<16} {mid} ({ctxs})"))
 rows.sort(key=lambda r: (r[0], r[1], r[2], r[3]))
-# OpenRouter's own Free Models Router: zero-cost, picks a free model per
-# request and filters for tool support itself. The ?supported_parameters=tools
-# catalog filter excludes routers, so add it explicitly at the top. Other
-# openrouter/* routers stay hidden — some fan out to paid models and would
-# drain a student key fast.
 rows.insert(0, (0, 0.0, "openrouter", "openrouter/free",
-                f"{'FREE':<16} openrouter/free (router — picks a free, tool-capable model per request; rate-limited, fine for smoke tests)"))
+                f"{'FREE':<16} openrouter/free (router -- picks a free, tool-capable model per request; rate-limited)"))
 for r in rows: print(f"{r[3]}\t{r[4]}")
 PY
 )
-((${#ORROWS[@]})) || { echo "❌ No tool-capable models from popular vendors returned (OpenRouter's catalog may have shifted)."; exit 1; }
+((${#ORROWS[@]})) || { echo "❌ No tool-capable models returned from OpenRouter."; exit 1; }
 OR_IDS=(); i=1
 echo; echo "OpenRouter models (tool-capable; free first, then by price — remember it's your own credit):"
 for row in "${ORROWS[@]}"; do
@@ -150,7 +181,7 @@ for m in json.load(open("/tmp/ou_models.json")).get("data",[]): print(m["id"])' 
   read -rp "Primary model number [default 1]: " p </dev/tty; p="${p:-1}"
   if ! [[ "${p}" =~ ^[0-9]+$ ]] || (( p < 1 || p > ${#OU[@]} )); then echo "Invalid choice."; exit 1; fi
   PRIMARY="${OU[$((p-1))]}"
-  apply_models "litellm" "${PRIMARY}"
+  apply_model "litellm" "${PRIMARY}"
   exit 0
 fi
 
@@ -159,4 +190,4 @@ if ! [[ "${choice}" =~ ^[0-9]+$ ]] || (( choice < 1 || choice > N )); then
   echo "Invalid choice."; exit 1
 fi
 PRIMARY="${OR_IDS[$((choice-1))]}"
-apply_models "openrouter" "${PRIMARY}"
+apply_model "openrouter" "${PRIMARY}"

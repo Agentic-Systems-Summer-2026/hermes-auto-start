@@ -1,11 +1,11 @@
 {
-  // Hermes Agent Codespace — auto-installs Hermes and points it at the first
+  // OpenCode Codespace — auto-installs OpenCode and points it at the first
   // working endpoint: OU AI Sandbox (if you have a key), else OpenRouter.
   // See scripts/preflight.sh + scripts/configure.sh. Comments are allowed here.
   "name": "Agentic Systems Course (OU AI Sandbox + OpenRouter)",
 
-  // Node 22 LTS base — Hermes uses Python 3.11 (installed by its own installer)
-  // plus a few Node utilities for tooling. Node 22.14+ is compatible.
+  // Node 22 LTS base — OpenCode is installed via its own install script.
+  // Node 22.14+ is compatible.
   "image": "mcr.microsoft.com/devcontainers/javascript-node:22-bookworm",
 
   // Codespaces PROMPTS for these secrets at creation time if they aren't already
@@ -13,7 +13,7 @@
   "secrets": {
     "LITELLM_API_KEY": {
       "description": "FIRST CHOICE. Your OU AI Sandbox key (starts with sk-), issued by the course. If you have one, set it — the Codespace uses it automatically. Leave blank if you weren't issued one.",
-      "documentationUrl": "https://hermes-agent.nousresearch.com/docs/integrations/providers"
+      "documentationUrl": "https://opencode.ai/docs/providers"
     },
     "OPENROUTER_API_KEY": {
       "description": "Also works (used when no OU AI Sandbox key is set). Your OWN OpenRouter API key (starts with sk-or-). Create the account + key at https://openrouter.ai (Settings → Keys), load ~$10 of credit, and set a credit limit on the key. Expect at most ~$10 of usage for the term.",
@@ -21,11 +21,11 @@
     }
   },
 
-  // Runs once after the container is built: installs Hermes and writes config.
+  // Runs once after the container is built: installs OpenCode and writes config.
   "postCreateCommand": "bash .devcontainer/setup.sh",
 
   // Runs on EVERY container start: runs a background preflight check so the
-  // Hermes: Chat terminal can start faster. Idempotent and fully detached —
+  // OpenCode: Chat terminal can start faster. Idempotent and fully detached —
   // never blocks startup.
   "postStartCommand": "bash scripts/gateway-daemon.sh",
 

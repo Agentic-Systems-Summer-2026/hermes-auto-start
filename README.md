@@ -23,15 +23,15 @@ Build Journal, and a CI eval gate. By August 7 this repo *is* your portfolio.
    codespace**. (Forgot a key? No problem — the Chat terminal will ask
    you for one on first start.)
 3. When VS Code asks **"Do you want to allow automatic tasks…?"** (naming
-   Hermes: Chat), click **Allow** — don't let it time out. That's what opens
+   OpenCode: Chat), click **Allow** — don't let it time out. That's what opens
    your chat terminal, and one click covers all future opens. Then wait for
-   setup to finish (watch the numbered steps). Hermes Agent auto-starts and
-   a terminal opens: **Hermes: Chat** (your agent). Full details on how
+   setup to finish (watch the numbered steps). OpenCode auto-starts and
+   a terminal opens: **OpenCode: Chat** (your agent). Full details on how
    this works: [hermes-auto-start](https://github.com/Agentic-Systems-Summer-2026/hermes-auto-start)
    — this repo includes the same machinery.
    **No terminal appeared?** That's a VS Code security gate, not a broken
-   setup: press `Cmd/Ctrl+Shift+P` → **Tasks: Run Task** → **Hermes: Chat**
-   (or just run `bash scripts/start-hermes.sh` in a terminal — it will
+   setup: press `Cmd/Ctrl+Shift+P` → **Tasks: Run Task** → **OpenCode: Chat**
+   (or just run `bash scripts/start-opencode.sh` in a terminal — it will
    prompt for your key if needed). If VS Code shows an "automatic tasks"
    notification (bell icon, bottom right), allow it so future opens start
    by themselves.
@@ -46,7 +46,7 @@ Build Journal, and a CI eval gate. By August 7 this repo *is* your portfolio.
 | `prompts/` + `PROMPTS.md` | Prompts as files + the required changelog. Prompts are software artifacts. |
 | `JOURNAL.md` | Your Build Journal (graded, cumulative, also your AI-use disclosure record) |
 | `.github/workflows/eval.yml` | CI regression gate — runs your BC4 eval harness on every push |
-| `.devcontainer/`, `scripts/`, `.vscode/` | Codespace machinery (Hermes Agent + OU AI Sandbox + OpenRouter) — you shouldn't need to touch these |
+| `.devcontainer/`, `scripts/`, `.vscode/` | Codespace machinery (OpenCode + OU AI Sandbox + OpenRouter) — you shouldn't need to touch these |
 
 ## Working rhythm
 
@@ -101,20 +101,20 @@ Default model: `Qwen3 Coder 30B` on the OU AI Sandbox, or
 `qwen/qwen3-coder` on OpenRouter — the Codespace picks the endpoint from
 your key(s) at startup (OU AI Sandbox first). Route individual calls to
 cheaper models with `chat(..., model=...)` — you'll use that in the Day 9
-cost lab. Switch the Hermes model any time with `scripts/select-model.sh`
+cost lab. Switch the OpenCode model any time with `scripts/select-model.sh`
 or `Ctrl/Cmd+Alt+M`.
 
-## Hermes Agent commands
+## OpenCode commands
 
-Once in the Hermes chat terminal:
+Once in the OpenCode chat terminal:
 
 | Command | What it does |
 |---|---|
 | `/model` | Switch model mid-conversation |
 | `/new` | Start a fresh conversation |
-| `/compress` | Compress conversation history |
-| `/usage` | Show token usage |
-| `Ctrl+C` | Stop Hermes (then `bash scripts/start-hermes.sh` to restart) |
+| `/compact` | Compact conversation history |
+| `Tab` | Switch between build/plan agents |
+| `Ctrl+C` | Stop OpenCode (then `bash scripts/start-opencode.sh` to restart) |
 
 To switch model from the terminal: `bash scripts/select-model.sh` (or `Ctrl/Cmd+Alt+M`).
 To change your API key: `bash scripts/set-key.sh`.
