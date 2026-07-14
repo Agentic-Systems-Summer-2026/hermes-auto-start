@@ -1,6 +1,6 @@
 """Shared LLM client for all Build Challenges. Stdlib only — no pip installs.
 
-Endpoint auto-detect (matches the Codespace's Hermes Agent configuration):
+Endpoint auto-detect (matches the Codespace's OpenCode configuration):
   1. OU AI Sandbox — used when LITELLM_API_KEY is set (first choice)
   2. OpenRouter    — used otherwise (your own OPENROUTER_API_KEY)
 

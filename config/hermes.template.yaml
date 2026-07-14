@@ -1,20 +1,17 @@
-# Hermes Agent configuration template — reference only.
-# scripts/configure.sh writes ~/.hermes/config.yaml from scratch; this file
-# documents the options used. Full reference:
-#   https://hermes-agent.nousresearch.com/docs/user-guide/configuration
+# DEPRECATED: This repo has migrated from Hermes Agent to OpenCode.
+# This file is kept for historical reference only.
+# See config/opencode.template.jsonc for the current configuration format.
 #
-# Two endpoint options (configure.sh picks one based on which key is present):
+# Former Hermes Agent configuration template — reference only.
+# Full reference: https://hermes-agent.nousresearch.com/docs/user-guide/configuration
 #
-# ── Option A: OU AI Sandbox (first choice when LITELLM_API_KEY is set) ───────
+# ── Option A: OU AI Sandbox ───────────────────────────────────────────────────
 # model:
 #   base_url: "https://litellm.lib.ou.edu/v1"
 #   api_key: "<LITELLM_API_KEY>"
 #   default: "Qwen3 Coder 30B"
 #
-# ── Option B: OpenRouter (your own key; used when no OU Sandbox key set) ─────
+# ── Option B: OpenRouter ──────────────────────────────────────────────────────
 # model:
 #   provider: openrouter
 #   default: "qwen/qwen3-coder"
-#
-# Both options accept any model available on the chosen endpoint.
-# Switch at runtime: bash scripts/select-model.sh  (or Ctrl/Cmd+Alt+M)

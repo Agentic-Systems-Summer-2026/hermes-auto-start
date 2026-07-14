@@ -1,21 +1,21 @@
 {
-  // Auto-start (on folder open): Hermes Chat (preflight + launch hermes).
-  // On-demand (Command Palette → Tasks: Run Task): Hermes: Choose Model.
+  // Auto-start (on folder open): OpenCode Chat (preflight + launch opencode).
+  // On-demand (Command Palette → Tasks: Run Task): OpenCode: Choose Model.
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Hermes: Chat",
+      "label": "OpenCode: Chat",
       "type": "shell",
-      "command": "bash '${workspaceFolder}/scripts/start-hermes.sh'",
-      "presentation": { "group": "hermes", "panel": "dedicated", "reveal": "always", "focus": true },
+      "command": "bash '${workspaceFolder}/scripts/start-opencode.sh'",
+      "presentation": { "group": "opencode", "panel": "dedicated", "reveal": "always", "focus": true },
       "runOptions": { "runOn": "folderOpen" },
       "problemMatcher": []
     },
     {
-      "label": "Hermes: Choose Model",
+      "label": "OpenCode: Choose Model",
       "type": "shell",
       "command": "bash '${workspaceFolder}/scripts/select-model.sh'",
-      "presentation": { "group": "hermes", "panel": "dedicated", "reveal": "always", "focus": true, "clear": true },
+      "presentation": { "group": "opencode", "panel": "dedicated", "reveal": "always", "focus": true, "clear": true },
       "problemMatcher": []
     }
   ]

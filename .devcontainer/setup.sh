@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# postCreateCommand: install Hermes Agent and configure it for OU AI Sandbox
-# or OpenRouter. No onboarding wizard — Hermes auto-starts when the Codespace opens.
+# postCreateCommand: install OpenCode and configure it for OU AI Sandbox
+# or OpenRouter. No onboarding wizard — OpenCode auto-starts when the Codespace opens.
 #
 # TRANSPARENCY: everything this script does is shown live in the Codespace
 # creation log (Command Palette → "Codespaces: View Creation Log") AND saved
-# to ~/.hermes/setup.log so you can review it any time afterwards.
+# to ~/.opencode/setup.log so you can review it any time afterwards.
 set -euo pipefail
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # Mirror all output (stdout + stderr) to a persistent log.
-mkdir -p "${HOME}/.hermes"
-SETUP_LOG="${HOME}/.hermes/setup.log"
+mkdir -p "${HOME}/.opencode"
+SETUP_LOG="${HOME}/.opencode/setup.log"
 exec > >(tee -a "${SETUP_LOG}") 2>&1
 
 step() {
@@ -21,29 +21,29 @@ step() {
 }
 
 echo "═════════════════════════════════════════════════════════════"
-echo "  Hermes Agent Codespace setup — started $(date '+%Y-%m-%d %H:%M:%S %Z')"
-echo "  Live log: this terminal   ·   Saved log: ~/.hermes/setup.log"
+echo "  OpenCode Codespace setup — started $(date '+%Y-%m-%d %H:%M:%S %Z')"
+echo "  Live log: this terminal   ·   Saved log: ~/.opencode/setup.log"
 echo "═════════════════════════════════════════════════════════════"
 
-step "Step 1/7 — Install Hermes Agent (official installer; can take a few minutes)"
-bash "${REPO_DIR}/scripts/install-hermes.sh" \
-  || echo "!! Hermes install failed. Retry later with: bash .devcontainer/setup.sh" >&2
+step "Step 1/7 — Install OpenCode (official installer; can take a minute)"
+bash "${REPO_DIR}/scripts/install-opencode.sh" \
+  || echo "!! OpenCode install failed. Retry later with: bash .devcontainer/setup.sh" >&2
 
-export PATH="${HOME}/.local/bin:${HOME}/.hermes/bin:${HOME}/.cargo/bin:${PATH}"
-echo "hermes resolves to: $(command -v hermes || echo '(not found yet — the Chat task will retry the install)')"
+export PATH="${HOME}/.local/bin:${HOME}/bin:${HOME}/.opencode/bin:${HOME}/.cargo/bin:${PATH}"
+echo "opencode resolves to: $(command -v opencode || echo '(not found yet — the Chat task will retry the install)')"
 
-step "Step 2/7 — Write Hermes config (OU AI Sandbox first, else OpenRouter) (~/.hermes/config.yaml)"
+step "Step 2/7 — Write OpenCode config (OU AI Sandbox first, else OpenRouter) (~/.config/opencode/opencode.json)"
 bash "${REPO_DIR}/scripts/configure.sh" || true
 
-step "Step 3/7 — Put 'hermes' on PATH for future terminals (~/.bashrc)"
-MARKER="# >>> hermes-codespace path >>>"
+step "Step 3/7 — Put 'opencode' on PATH for future terminals (~/.bashrc)"
+MARKER="# >>> opencode-codespace path >>>"
 if ! grep -qF "${MARKER}" "${HOME}/.bashrc" 2>/dev/null; then
-  cat >> "${HOME}/.bashrc" <<EOF
+  cat >> "${HOME}/.bashrc" <<BASHBLOCK
 
 ${MARKER}
-export PATH="\${HOME}/.local/bin:\${HOME}/.hermes/bin:\${HOME}/.cargo/bin:\${PATH}"
-# <<< hermes-codespace path <<<
-EOF
+export PATH="\${HOME}/.local/bin:\${HOME}/bin:\${HOME}/.opencode/bin:\${HOME}/.cargo/bin:\${PATH}"
+# <<< opencode-codespace path <<<
+BASHBLOCK
   echo "PATH block added to ~/.bashrc."
 else
   echo "PATH block already present — nothing to do."
@@ -121,7 +121,7 @@ echo
 echo "═════════════════════════════════════════════════════════════"
 echo "  [$(date '+%H:%M:%S')] Setup complete."
 echo "  What happens next (automatic):"
-echo "   • Hermes: Chat task opens automatically → runs preflight + launches hermes"
-echo "   • Hermes: Choose Model task is available (Ctrl/Cmd+Alt+M)"
-echo "  Review this setup later:  cat ~/.hermes/setup.log"
+echo "   • OpenCode: Chat task opens automatically → runs preflight + launches opencode"
+echo "   • OpenCode: Choose Model task is available (Ctrl/Cmd+Alt+M)"
+echo "  Review this setup later:  cat ~/.opencode/setup.log"
 echo "═════════════════════════════════════════════════════════════"
